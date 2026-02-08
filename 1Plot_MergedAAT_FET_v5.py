@@ -186,9 +186,9 @@ Presets available: explore, presentation, journal
         """
     )
 
-    # Positional argument
-    parser.add_argument('input', type=str,
-                       help='Data file or directory to process')
+    # Positional argument(s)
+    parser.add_argument('input', type=str, nargs='+',
+                       help='Data file(s) or directory to process. Pass multiple files to merge them.')
 
     # Output format
     parser.add_argument('--format', '-f', choices=['png', 'svg', 'pdf', 'eps'],
@@ -882,24 +882,35 @@ def main():
     print(f"Author: {__author__}")
     print(f"Lab: {__lab__}")
 
-    # Determine input path
-    data_path = Path(args.input)
+    # Determine input path(s)
+    input_paths = [Path(p) for p in args.input]
 
-    if not data_path.exists():
-        print(f"\n❌ Error: Path does not exist: {data_path}")
-        return
+    # Validate all paths exist
+    for p in input_paths:
+        if not p.exists():
+            print(f"\n❌ Error: Path does not exist: {p}")
+            return
+
+    # For single input, use it directly; for multiple, treat as multi-file mode
+    multi_file_mode = len(input_paths) > 1 or (len(input_paths) == 1 and input_paths[0].is_file() and len(args.input) > 1)
+    data_path = input_paths[0]  # Primary path (used for output dir default)
 
     # Set output directory
     if args.output:
         output_dir = Path(args.output)
     else:
-        if data_path.is_file():
+        if multi_file_mode or data_path.is_file():
             output_dir = data_path.parent / "merged_plots_output"
         else:
             output_dir = data_path / "merged_plots_output"
 
     # Print configuration
-    print(f"\n📂 Input: {data_path}")
+    if multi_file_mode:
+        print(f"\n📂 Input: {len(input_paths)} files")
+        for p in input_paths:
+            print(f"   → {p.name}")
+    else:
+        print(f"\n📂 Input: {data_path}")
     print(f"💾 Output: {output_dir}")
     print(f"🎨 Format: {args.format.upper()} ({args.dpi} DPI)")
     print(f"🎨 Palette: {args.palette}")
@@ -933,7 +944,19 @@ def main():
 
     loader = AATDataLoader()
 
-    if data_path.is_file():
+    if multi_file_mode:
+        # Multiple files specified - load each and merge
+        all_measurements = []
+        for fpath in input_paths:
+            print(f"\n📄 File: {fpath.name}")
+            measurements = loader.load_measurement(fpath)
+            if measurements:
+                all_measurements.extend(measurements)
+                print(f"   ✓ Loaded {len(measurements)} sweep(s)")
+            else:
+                print(f"   ⚠️  No data loaded from {fpath.name}")
+        print(f"\n📊 Total sweeps from {len(input_paths)} files: {len(all_measurements)}")
+    elif data_path.is_file():
         print(f"\n📄 File: {data_path.name}")
         measurements = loader.load_measurement(data_path)
         if measurements:
