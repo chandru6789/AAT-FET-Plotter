@@ -232,7 +232,7 @@ Presets available: explore, presentation, journal
 
     # Output directory
     parser.add_argument('--output', '-o', type=str, default=None,
-                       help='Output directory (default: input_dir/aat_plots_output)')
+                       help='Output directory (default: input_dir/merged_plots_output)')
 
     # Preset
     parser.add_argument('--preset', choices=['explore', 'presentation', 'journal'],
@@ -894,9 +894,9 @@ def main():
         output_dir = Path(args.output)
     else:
         if data_path.is_file():
-            output_dir = data_path.parent / "aat_plots_output"
+            output_dir = data_path.parent / "merged_plots_output"
         else:
-            output_dir = data_path / "aat_plots_output"
+            output_dir = data_path / "merged_plots_output"
 
     # Print configuration
     print(f"\n📂 Input: {data_path}")
