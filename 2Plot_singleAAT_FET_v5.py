@@ -36,6 +36,7 @@ from pathlib import Path
 from aat_data_loader_multisweep import AATDataLoader
 from filename_generator_robust import generate_filename_safe
 import sys
+import re
 import argparse
 
 # ========== VERSION INFO ==========
@@ -275,7 +276,44 @@ def get_extension(format_name):
     """Convert format name to file extension"""
     return f".{format_name}"
 
-def plot_single_file(measurements, filepath, device_id, output_dir, args):
+def extract_timestamp(filepath):
+    """Extract time portion from measurement filename for disambiguation.
+    e.g., 'Id-Vg [ ; 2026_02_05 10_15_57].txt' → '101557'
+    """
+    match = re.search(r'(\d{2})_(\d{2})_(\d{2})\]', filepath.name)
+    if match:
+        return f"{match.group(1)}{match.group(2)}{match.group(3)}"
+    return None
+
+def deduplicate_filename(filename, used_filenames, filepath):
+    """Ensure unique output filename by appending timestamp or counter."""
+    if filename not in used_filenames:
+        used_filenames[filename] = 1
+        return filename
+
+    # Try appending source file timestamp first
+    stem = Path(filename).stem
+    ext = Path(filename).suffix
+    timestamp = extract_timestamp(filepath)
+
+    if timestamp:
+        new_name = f"{stem}_t{timestamp}{ext}"
+        if new_name not in used_filenames:
+            used_filenames[new_name] = 1
+            # Also retroactively rename the first file that used this name
+            return new_name
+
+    # Fallback: append counter
+    used_filenames[filename] += 1
+    counter = used_filenames[filename]
+    new_name = f"{stem}_{counter}{ext}"
+    while new_name in used_filenames:
+        counter += 1
+        new_name = f"{stem}_{counter}{ext}"
+    used_filenames[new_name] = 1
+    return new_name
+
+def plot_single_file(measurements, filepath, device_id, output_dir, args, used_filenames):
     """Plot a single file's data"""
     if not measurements:
         print(f"  ⚠️  No data to plot")
@@ -371,6 +409,34 @@ def plot_single_file(measurements, filepath, device_id, output_dir, args):
         if filename is None:
             # Fallback to original filename
             filename = filepath.stem + extension
+
+        # Check for duplicate filenames and disambiguate
+        original_filename = filename
+        filename = deduplicate_filename(filename, used_filenames, filepath)
+
+        # If this is the first duplicate detected, retroactively rename the earlier file
+        if filename != original_filename and used_filenames.get(original_filename) == 1:
+            first_path = output_dir / original_filename
+            if first_path.exists():
+                first_timestamp = None
+                # Find which source file produced the first output
+                for src, out in used_filenames.get('_source_map', {}).items():
+                    if out == original_filename:
+                        first_timestamp = extract_timestamp(Path(src))
+                        break
+                if first_timestamp:
+                    stem = Path(original_filename).stem
+                    ext_part = Path(original_filename).suffix
+                    renamed = f"{stem}_t{first_timestamp}{ext_part}"
+                    renamed_path = output_dir / renamed
+                    first_path.rename(renamed_path)
+                    used_filenames[renamed] = 1
+                    print(f"   ℹ️  Renamed earlier file: {original_filename} → {renamed}")
+
+        # Track source file → output filename mapping
+        if '_source_map' not in used_filenames:
+            used_filenames['_source_map'] = {}
+        used_filenames['_source_map'][str(filepath)] = filename
 
         save_path = output_dir / filename
 
@@ -468,6 +534,7 @@ def main():
     # Process each file individually
     successful = 0
     failed = 0
+    used_filenames = {}  # Track output filenames to prevent overwrites
 
     for filepath in files:
         try:
@@ -488,7 +555,7 @@ def main():
                 device_id = "DV-26-XX"  # Default fallback (DV=Device, 26=2026, XX=ID number)
 
             # Plot this file
-            result = plot_single_file(measurements, filepath, device_id, output_dir, args)
+            result = plot_single_file(measurements, filepath, device_id, output_dir, args, used_filenames)
 
             if result:
                 successful += 1
