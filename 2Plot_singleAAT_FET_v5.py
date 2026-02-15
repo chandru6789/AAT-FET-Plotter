@@ -313,7 +313,7 @@ def deduplicate_filename(filename, used_filenames, filepath):
     used_filenames[new_name] = 1
     return new_name
 
-def plot_single_file(measurements, filepath, device_id, output_dir, args, used_filenames):
+def plot_single_file(measurements, filepath, device_id, output_dir, args):
     """Plot a single file's data"""
     if not measurements:
         print(f"  ⚠️  No data to plot")
@@ -394,50 +394,9 @@ def plot_single_file(measurements, filepath, device_id, output_dir, args, used_f
 
         plt.tight_layout()
 
-        # Generate filename
+        # Use input filename with new extension (data.txt → data.png)
         extension = get_extension(args.format)
-        filename = generate_filename_safe(
-            measurements,
-            measurement_type=meas_type,
-            subtype=subtype,
-            device_id=device_id,
-            extension=extension,
-            interactive=False,
-            verbose=False
-        )
-
-        if filename is None:
-            # Fallback to original filename
-            filename = filepath.stem + extension
-
-        # Check for duplicate filenames and disambiguate
-        original_filename = filename
-        filename = deduplicate_filename(filename, used_filenames, filepath)
-
-        # If this is the first duplicate detected, retroactively rename the earlier file
-        if filename != original_filename and used_filenames.get(original_filename) == 1:
-            first_path = output_dir / original_filename
-            if first_path.exists():
-                first_timestamp = None
-                # Find which source file produced the first output
-                for src, out in used_filenames.get('_source_map', {}).items():
-                    if out == original_filename:
-                        first_timestamp = extract_timestamp(Path(src))
-                        break
-                if first_timestamp:
-                    stem = Path(original_filename).stem
-                    ext_part = Path(original_filename).suffix
-                    renamed = f"{stem}_t{first_timestamp}{ext_part}"
-                    renamed_path = output_dir / renamed
-                    first_path.rename(renamed_path)
-                    used_filenames[renamed] = 1
-                    print(f"   ℹ️  Renamed earlier file: {original_filename} → {renamed}")
-
-        # Track source file → output filename mapping
-        if '_source_map' not in used_filenames:
-            used_filenames['_source_map'] = {}
-        used_filenames['_source_map'][str(filepath)] = filename
-
+        filename = filepath.stem + extension
         save_path = output_dir / filename
 
         # Save
@@ -534,7 +493,6 @@ def main():
     # Process each file individually
     successful = 0
     failed = 0
-    used_filenames = {}  # Track output filenames to prevent overwrites
 
     for filepath in files:
         try:
@@ -555,7 +513,7 @@ def main():
                 device_id = "DV-26-XX"  # Default fallback (DV=Device, 26=2026, XX=ID number)
 
             # Plot this file
-            result = plot_single_file(measurements, filepath, device_id, output_dir, args, used_filenames)
+            result = plot_single_file(measurements, filepath, device_id, output_dir, args)
 
             if result:
                 successful += 1
