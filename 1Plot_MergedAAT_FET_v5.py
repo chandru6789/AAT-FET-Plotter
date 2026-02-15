@@ -127,7 +127,8 @@ PRESETS = {
         'grid_major': 0.2,
         'grid_minor': 0.1,
         'n_major_ticks': 8,
-        'n_minor_ticks': 2
+        'n_minor_ticks': 2,
+        'semilogy': False
     },
     'presentation': {
         'description': 'High-quality plots for presentations',
@@ -139,7 +140,8 @@ PRESETS = {
         'grid_major': 0.3,
         'grid_minor': 0.15,
         'n_major_ticks': 6,
-        'n_minor_ticks': 1
+        'n_minor_ticks': 1,
+        'semilogy': False
     },
     'journal': {
         'description': 'Publication-ready plots',
@@ -151,7 +153,8 @@ PRESETS = {
         'grid_major': 0.2,
         'grid_minor': 0.1,
         'n_major_ticks': 8,
-        'n_minor_ticks': 2
+        'n_minor_ticks': 2,
+        'semilogy': False
     }
 }
 
@@ -261,6 +264,10 @@ Presets available: explore, presentation, journal
     parser.add_argument('--legend-labels', nargs='+', type=str, default=None,
                        help='Custom legend labels (e.g., "WSe2" "ReS2" "MoS2"). Replaces auto-generated Vd labels.')
 
+    # Semi-log plot
+    parser.add_argument('--semilogy', action='store_true',
+                       help='Use logarithmic scale for y-axis (current)')
+
     # Version
     parser.add_argument('--version', action='version',
                        version=f'AAT/FET Plotting System v{__version__}')
@@ -290,6 +297,8 @@ def apply_preset(args, preset_name):
         args.n_major_ticks = preset['n_major_ticks']
     if args.n_minor_ticks is None:
         args.n_minor_ticks = preset['n_minor_ticks']
+    if not args.semilogy:
+        args.semilogy = preset['semilogy']
 
     return args
 
@@ -473,13 +482,15 @@ def plot_fet_clean(measurements, material, device_id, output_dir, args, sweep_ty
             else:
                 label = f"Vd = {Vd:.1f} V"
 
-            ax.plot(Vg_fwd, Id_fwd * 1e6, '-', color=color, linewidth=2.5,
+            current_data = np.abs(Id_fwd) * 1e6 if args.semilogy else Id_fwd * 1e6
+            ax.plot(Vg_fwd, current_data, '-', color=color, linewidth=2.5,
                    label=label, alpha=1.0, marker='o', markersize=3, markevery=5)
 
             if meas['backward']:
                 Vg_bwd = meas['backward']['Vg']
                 Id_bwd = meas['backward']['Id']
-                ax.plot(Vg_bwd, Id_bwd * 1e6, '--', color=color, linewidth=2,
+                current_data_bwd = np.abs(Id_bwd) * 1e6 if args.semilogy else Id_bwd * 1e6
+                ax.plot(Vg_bwd, current_data_bwd, '--', color=color, linewidth=2,
                        alpha=0.4, marker='s', markersize=3, markevery=5)
 
             # Store metadata
@@ -493,9 +504,14 @@ def plot_fet_clean(measurements, material, device_id, output_dir, args, sweep_ty
             }
             metadata['measurements'].append(meas_meta)
 
+        # Apply log scale if requested
+        if args.semilogy:
+            ax.set_yscale('log')
+
         # Axis labels
         ax.set_xlabel('$V_g$ (V)', fontsize=14, fontweight='bold')
-        ax.set_ylabel('$I_d$ (μA)', fontsize=14, fontweight='bold')
+        y_label = '$I_d$ (μA, log scale)' if args.semilogy else '$I_d$ (μA)'
+        ax.set_ylabel(y_label, fontsize=14, fontweight='bold')
         ax.legend(loc='best', frameon=False)
 
         # Tick marks
@@ -600,13 +616,15 @@ def plot_aat_clean(measurements, electrode_type, device_id, output_dir, args, sw
             else:
                 label = f"Vd = {Vd:.1f} V"
 
-            ax.plot(Vg_fwd, Id_fwd * 1e9, '-', color=color, linewidth=2.5,
+            current_data = np.abs(Id_fwd) * 1e9 if args.semilogy else Id_fwd * 1e9
+            ax.plot(Vg_fwd, current_data, '-', color=color, linewidth=2.5,
                    label=label, alpha=1.0, marker='o', markersize=3, markevery=5)
 
             if meas['backward']:
                 Vg_bwd = meas['backward']['Vg']
                 Id_bwd = meas['backward']['Id']
-                ax.plot(Vg_bwd, Id_bwd * 1e9, '--', color=color, linewidth=2,
+                current_data_bwd = np.abs(Id_bwd) * 1e9 if args.semilogy else Id_bwd * 1e9
+                ax.plot(Vg_bwd, current_data_bwd, '--', color=color, linewidth=2,
                        alpha=0.4, marker='s', markersize=3, markevery=5)
 
             # Store metadata
@@ -624,9 +642,14 @@ def plot_aat_clean(measurements, electrode_type, device_id, output_dir, args, sw
             }
             metadata['measurements'].append(meas_meta)
 
+        # Apply log scale if requested
+        if args.semilogy:
+            ax.set_yscale('log')
+
         # Axis labels
         ax.set_xlabel('$V_g$ (V)', fontsize=14, fontweight='bold')
-        ax.set_ylabel('$I_d$ (nA)', fontsize=14, fontweight='bold')
+        y_label = '$I_d$ (nA, log scale)' if args.semilogy else '$I_d$ (nA)'
+        ax.set_ylabel(y_label, fontsize=14, fontweight='bold')
         ax.legend(loc='best', frameon=False)
 
         # Tick marks
@@ -765,13 +788,15 @@ def plot_generic_merged(measurements, label, meas_type, device_id, output_dir, a
             else:
                 label_text = f"Vd = {Vd:.1f} V"
 
-            ax.plot(Vg_fwd, Id_fwd * current_scale, '-', color=color, linewidth=2.5,
+            current_data = np.abs(Id_fwd) * current_scale if args.semilogy else Id_fwd * current_scale
+            ax.plot(Vg_fwd, current_data, '-', color=color, linewidth=2.5,
                    label=label_text, alpha=1.0, marker='o', markersize=3, markevery=5)
 
             if meas['backward']:
                 Vg_bwd = meas['backward']['Vg']
                 Id_bwd = meas['backward']['Id']
-                ax.plot(Vg_bwd, Id_bwd * current_scale, '--', color=color, linewidth=2,
+                current_data_bwd = np.abs(Id_bwd) * current_scale if args.semilogy else Id_bwd * current_scale
+                ax.plot(Vg_bwd, current_data_bwd, '--', color=color, linewidth=2,
                        alpha=0.4, marker='s', markersize=3, markevery=5)
 
             # Store metadata
@@ -785,9 +810,14 @@ def plot_generic_merged(measurements, label, meas_type, device_id, output_dir, a
             }
             metadata['measurements'].append(meas_meta)
 
+        # Apply log scale if requested
+        if args.semilogy:
+            ax.set_yscale('log')
+
         # Axis labels
         ax.set_xlabel('$V_g$ (V)', fontsize=14, fontweight='bold')
-        ax.set_ylabel(f'$I_d$ ({current_unit})', fontsize=14, fontweight='bold')
+        y_suffix = ', log scale' if args.semilogy else ''
+        ax.set_ylabel(f'$I_d$ ({current_unit}{y_suffix})', fontsize=14, fontweight='bold')
         ax.legend(loc='best', frameon=False)
 
         # Tick marks
