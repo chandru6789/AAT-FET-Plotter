@@ -41,7 +41,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator, MaxNLocator
+from matplotlib.ticker import AutoMinorLocator, MaxNLocator, ScalarFormatter
 from pathlib import Path
 from aat_data_loader_multisweep import AATDataLoader
 from filename_generator_robust import generate_filename_safe, generate_filename_compact, generate_filename_detailed
@@ -348,6 +348,23 @@ def get_extension(format_name):
     """Convert format name to file extension"""
     return f".{format_name}"
 
+def get_unique_filepath(filepath):
+    """Ensure unique filepath by appending _1, _2, etc if file exists."""
+    path = Path(filepath)
+    if not path.exists():
+        return path
+
+    stem = path.stem
+    suffix = path.suffix
+    parent = path.parent
+    counter = 1
+
+    while True:
+        new_path = parent / f"{stem}_{counter}{suffix}"
+        if not new_path.exists():
+            return new_path
+        counter += 1
+
 def save_metadata(metadata, filepath):
     """Save measurement metadata to text file"""
     try:
@@ -520,6 +537,10 @@ def plot_fet_clean(measurements, material, device_id, output_dir, args, sweep_ty
         ax.xaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
         ax.yaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
 
+        # Scientific notation for y-axis (academic standard)
+        if not args.semilogy:  # Only for linear scale (log already has proper formatting)
+            ax.ticklabel_format(style='scientific', axis='y', scilimits=(0, 0))
+
         # Axis ranges
         if args.x_range is not None:
             ax.set_xlim(args.x_range)
@@ -560,6 +581,7 @@ def plot_fet_clean(measurements, material, device_id, output_dir, args, sweep_ty
             return None, None
 
         save_path = output_dir / filename
+        save_path = get_unique_filepath(save_path)  # Prevent overwriting
 
         # Save plot
         print(f"💾 Saving: {save_path.name}")
@@ -658,6 +680,10 @@ def plot_aat_clean(measurements, electrode_type, device_id, output_dir, args, sw
         ax.xaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
         ax.yaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
 
+        # Scientific notation for y-axis (academic standard)
+        if not args.semilogy:  # Only for linear scale (log already has proper formatting)
+            ax.ticklabel_format(style='scientific', axis='y', scilimits=(0, 0))
+
         # Axis ranges
         if args.x_range is not None:
             ax.set_xlim(args.x_range)
@@ -698,6 +724,7 @@ def plot_aat_clean(measurements, electrode_type, device_id, output_dir, args, sw
             return None, None
 
         save_path = output_dir / filename
+        save_path = get_unique_filepath(save_path)  # Prevent overwriting
 
         # Save plot
         print(f"💾 Saving: {save_path.name}")
@@ -826,6 +853,10 @@ def plot_generic_merged(measurements, label, meas_type, device_id, output_dir, a
         ax.xaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
         ax.yaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
 
+        # Scientific notation for y-axis (academic standard)
+        if not args.semilogy:  # Only for linear scale (log already has proper formatting)
+            ax.ticklabel_format(style='scientific', axis='y', scilimits=(0, 0))
+
         # Axis ranges
         if args.x_range is not None:
             ax.set_xlim(args.x_range)
@@ -866,6 +897,7 @@ def plot_generic_merged(measurements, label, meas_type, device_id, output_dir, a
             print(f"   Using fallback filename: {filename}")
 
         save_path = output_dir / filename
+        save_path = get_unique_filepath(save_path)  # Prevent overwriting
 
         # Save plot
         print(f"💾 Saving: {save_path.name}")

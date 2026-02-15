@@ -31,7 +31,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator, MaxNLocator
+from matplotlib.ticker import AutoMinorLocator, MaxNLocator, ScalarFormatter
 from pathlib import Path
 from aat_data_loader_multisweep import AATDataLoader
 from filename_generator_robust import generate_filename_safe
@@ -285,6 +285,23 @@ def get_extension(format_name):
     """Convert format name to file extension"""
     return f".{format_name}"
 
+def get_unique_filepath(filepath):
+    """Ensure unique filepath by appending _1, _2, etc if file exists."""
+    path = Path(filepath)
+    if not path.exists():
+        return path
+
+    stem = path.stem
+    suffix = path.suffix
+    parent = path.parent
+    counter = 1
+
+    while True:
+        new_path = parent / f"{stem}_{counter}{suffix}"
+        if not new_path.exists():
+            return new_path
+        counter += 1
+
 def extract_timestamp(filepath):
     """Extract time portion from measurement filename for disambiguation.
     e.g., 'Id-Vg [ ; 2026_02_05 10_15_57].txt' → '101557'
@@ -394,6 +411,10 @@ def plot_single_file(measurements, filepath, device_id, output_dir, args):
         ax.xaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
         ax.yaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
 
+        # Scientific notation for y-axis (academic standard)
+        if not args.semilogy:  # Only for linear scale (log already has proper formatting)
+            ax.ticklabel_format(style='scientific', axis='y', scilimits=(0, 0))
+
         # Set axis ranges (if specified)
         if args.x_range is not None:
             ax.set_xlim(args.x_range)
@@ -414,10 +435,11 @@ def plot_single_file(measurements, filepath, device_id, output_dir, args):
         extension = get_extension(args.format)
         filename = filepath.stem + extension
         save_path = output_dir / filename
+        save_path = get_unique_filepath(save_path)  # Prevent overwriting
 
         # Save
         plt.savefig(save_path, dpi=args.dpi, bbox_inches='tight', facecolor='white')
-        print(f"   ✓ Saved: {filename}")
+        print(f"   ✓ Saved: {save_path.name}")
 
         plt.close(fig)
         return save_path
