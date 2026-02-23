@@ -501,9 +501,9 @@ def plot_fet_clean(measurements, material, device_id, output_dir, args, sweep_ty
             if args.legend_labels and idx < len(args.legend_labels):
                 label = args.legend_labels[idx]
             elif is_output_curve:
-                label = f"Vg = {Vd:.1f} V"
+                label = f"$V_g$ = {Vd:.1f} V"
             else:
-                label = f"Vd = {Vd:.1f} V"
+                label = f"$V_d$ = {Vd:.1f} V"
 
             current_data = np.abs(Id_fwd) * 1e6 if args.semilogy else Id_fwd * 1e6
             ax.plot(Vg_fwd, current_data, '-', color=color, linewidth=2.5,
@@ -643,9 +643,9 @@ def plot_aat_clean(measurements, electrode_type, device_id, output_dir, args, sw
             if args.legend_labels and idx < len(args.legend_labels):
                 label = args.legend_labels[idx]
             elif is_output_curve:
-                label = f"Vg = {Vd:.1f} V"
+                label = f"$V_g$ = {Vd:.1f} V"
             else:
-                label = f"Vd = {Vd:.1f} V"
+                label = f"$V_d$ = {Vd:.1f} V"
 
             current_data = np.abs(Id_fwd) * 1e9 if args.semilogy else Id_fwd * 1e9
             ax.plot(Vg_fwd, current_data, '-', color=color, linewidth=2.5,
@@ -823,9 +823,9 @@ def plot_generic_merged(measurements, label, meas_type, device_id, output_dir, a
             if args.legend_labels and idx < len(args.legend_labels):
                 label_text = args.legend_labels[idx]
             elif is_output_curve:
-                label_text = f"Vg = {Vd:.1f} V"
+                label_text = f"$V_g$ = {Vd:.1f} V"
             else:
-                label_text = f"Vd = {Vd:.1f} V"
+                label_text = f"$V_d$ = {Vd:.1f} V"
 
             current_data = np.abs(Id_fwd) * current_scale if args.semilogy else Id_fwd * current_scale
             ax.plot(Vg_fwd, current_data, '-', color=color, linewidth=2.5,

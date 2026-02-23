@@ -386,7 +386,7 @@ def plot_single_file(measurements, filepath, device_id, output_dir, args):
             Vg_fwd = meas['forward']['Vg']
             Id_fwd = meas['forward']['Id']
 
-            label = f"Vg = {Vd:.1f} V" if is_output_curve else f"Vd = {Vd:.1f} V"
+            label = f"$V_g$ = {Vd:.1f} V" if is_output_curve else f"$V_d$ = {Vd:.1f} V"
             current_data = np.abs(Id_fwd) * 1e9 if args.semilogy else Id_fwd * 1e9
             ax.plot(Vg_fwd, current_data, '-', color=color, linewidth=2.5,
                    label=label, alpha=1.0, marker='o', markersize=3, markevery=5)

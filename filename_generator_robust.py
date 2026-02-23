@@ -144,18 +144,23 @@ def generate_filename_safe(measurements, measurement_type, subtype, device_id,
         # Try to get date from first measurement
         date = measurements[0].get('metadata', {}).get('date', None)
         
+        is_output = sweep_type in ('Id-Vd', 'Ig-Vd')
         if verbose:
             print(f"\n✓ Detected parameters:")
             print(f"  • Measurement type: {measurement_type}")
             print(f"  • Subtype: {subtype}")
             print(f"  • Sweep type: {sweep_type}")
             print(f"  • Number of sweeps: {num_sweeps}")
-            print(f"  • Vd range: {vd_min:.2f} to {vd_max:.2f} V")
-            print(f"  • Vg range: {vg_min:.2f} to {vg_max:.2f} V")
+            if is_output:
+                print(f"  • Vg range (parameter): {vd_min:.2f} to {vd_max:.2f} V")
+                print(f"  • Vd range (sweep): {vg_min:.2f} to {vg_max:.2f} V")
+            else:
+                print(f"  • Vd range: {vd_min:.2f} to {vd_max:.2f} V")
+                print(f"  • Vg range: {vg_min:.2f} to {vg_max:.2f} V")
             if date:
                 print(f"  • Date: {date}")
             print(f"  • Device ID: {device_id}")
-            
+
             # Show metadata source
             if metadata_source:
                 source_label = "settings file" if metadata_source == 'settings_file' else "filename"
@@ -185,16 +190,20 @@ def generate_filename_safe(measurements, measurement_type, subtype, device_id,
     sweep_word = "sweep" if num_sweeps == 1 else "sweeps"
     components.append(f"{num_sweeps}{sweep_word}")
     
-    # 5. Vd range
-    if abs(vd_min - vd_max) < 0.01:  # Single Vd value
-        vd_str = f"Vd{vd_min:.1f}V"
+    # 5 & 6. Parameter and sweep ranges (labels depend on sweep direction)
+    if is_output:
+        # Id-Vd d(Vg): 'Vd' key holds Vg parameter steps, 'forward.Vg' holds Vd sweep
+        param_str = f"Vg{vd_min:.1f}to{vd_max:.1f}V"
+        sweep_str = f"Vd{vg_min:.0f}to{vg_max:.0f}V"
     else:
-        vd_str = f"Vd{vd_min:.1f}to{vd_max:.1f}V"
-    components.append(vd_str)
-    
-    # 6. Vg range (ADDED - now included in standard format!)
-    vg_str = f"Vg{vg_min:.0f}to{vg_max:.0f}V"
-    components.append(vg_str)
+        # Id-Vg (transfer): standard labeling
+        if abs(vd_min - vd_max) < 0.01:
+            param_str = f"Vd{vd_min:.1f}V"
+        else:
+            param_str = f"Vd{vd_min:.1f}to{vd_max:.1f}V"
+        sweep_str = f"Vg{vg_min:.0f}to{vg_max:.0f}V"
+    components.append(param_str)
+    components.append(sweep_str)
     
     # 7. Device ID
     components.append(device_id)

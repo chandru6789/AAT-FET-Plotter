@@ -149,8 +149,22 @@ class AATDataLoader:
 
                     # Extract relevant fields
                     if key == 'Setup title':
-                        # This is the sweep type (e.g., "Id-Vg", "Id-Vd")
-                        metadata['sweep_type'] = values[0] if values else None
+                        # Raw title e.g. "Id-Vd d(Vg)" → normalise to standard type
+                        raw_title = values[0] if values else None
+                        if raw_title:
+                            t = raw_title.strip('"\'').lower()
+                            if 'id-vg' in t:
+                                metadata['sweep_type'] = 'Id-Vg'
+                            elif 'id-vd' in t:
+                                metadata['sweep_type'] = 'Id-Vd'
+                            elif 'ig-vg' in t:
+                                metadata['sweep_type'] = 'Ig-Vg'
+                            elif 'ig-vd' in t:
+                                metadata['sweep_type'] = 'Ig-Vd'
+                            else:
+                                metadata['sweep_type'] = raw_title.strip('"\'')
+                        else:
+                            metadata['sweep_type'] = None
 
                     elif key == 'Test date':
                         # Format: YYYY/MM/DD -> convert to YYYY-MM-DD
