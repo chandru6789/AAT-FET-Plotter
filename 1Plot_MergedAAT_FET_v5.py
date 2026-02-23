@@ -41,7 +41,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator, MaxNLocator, ScalarFormatter
+from matplotlib.ticker import AutoMinorLocator, MaxNLocator
 from pathlib import Path
 from aat_data_loader_multisweep import AATDataLoader
 from filename_generator_robust import generate_filename_safe, generate_filename_compact, generate_filename_detailed
@@ -486,6 +486,10 @@ def plot_fet_clean(measurements, material, device_id, output_dir, args, sweep_ty
             'measurements': []
         }
 
+        # Detect sweep type for correct axis labeling
+        sweep_type_actual = measurements[0]['metadata'].get('sweep_type', 'Id-Vg')
+        is_output_curve = sweep_type_actual in ('Id-Vd', 'Ig-Vd')
+
         # Plot each sweep
         for idx, meas in enumerate(measurements):
             color = colors[idx % len(colors)]
@@ -496,6 +500,8 @@ def plot_fet_clean(measurements, material, device_id, output_dir, args, sweep_ty
             # Use custom legend label if provided, otherwise use default
             if args.legend_labels and idx < len(args.legend_labels):
                 label = args.legend_labels[idx]
+            elif is_output_curve:
+                label = f"Vg = {Vd:.1f} V"
             else:
                 label = f"Vd = {Vd:.1f} V"
 
@@ -526,7 +532,8 @@ def plot_fet_clean(measurements, material, device_id, output_dir, args, sweep_ty
             ax.set_yscale('log')
 
         # Axis labels
-        ax.set_xlabel('$V_g$ (V)', fontsize=14, fontweight='bold')
+        x_label = '$V_d$ (V)' if is_output_curve else '$V_g$ (V)'
+        ax.set_xlabel(x_label, fontsize=14, fontweight='bold')
         y_label = '$I_d$ (μA, log scale)' if args.semilogy else '$I_d$ (μA)'
         ax.set_ylabel(y_label, fontsize=14, fontweight='bold')
         ax.legend(loc='best', frameon=False)
@@ -536,10 +543,6 @@ def plot_fet_clean(measurements, material, device_id, output_dir, args, sweep_ty
         ax.yaxis.set_major_locator(MaxNLocator(nbins=args.n_major_ticks, prune=None))
         ax.xaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
         ax.yaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
-
-        # Scientific notation for y-axis (academic standard)
-        if not args.semilogy:  # Only for linear scale (log already has proper formatting)
-            ax.ticklabel_format(style='scientific', axis='y', scilimits=(0, 0))
 
         # Axis ranges
         if args.x_range is not None:
@@ -621,6 +624,10 @@ def plot_aat_clean(measurements, electrode_type, device_id, output_dir, args, sw
             'measurements': []
         }
 
+        # Detect sweep type for correct axis labeling
+        sweep_type_actual = measurements[0]['metadata'].get('sweep_type', 'Id-Vg')
+        is_output_curve = sweep_type_actual in ('Id-Vd', 'Ig-Vd')
+
         # Plot each sweep
         for idx, meas in enumerate(measurements):
             color = colors[idx % len(colors)]
@@ -635,6 +642,8 @@ def plot_aat_clean(measurements, electrode_type, device_id, output_dir, args, sw
             # Use custom legend label if provided, otherwise use default
             if args.legend_labels and idx < len(args.legend_labels):
                 label = args.legend_labels[idx]
+            elif is_output_curve:
+                label = f"Vg = {Vd:.1f} V"
             else:
                 label = f"Vd = {Vd:.1f} V"
 
@@ -669,7 +678,8 @@ def plot_aat_clean(measurements, electrode_type, device_id, output_dir, args, sw
             ax.set_yscale('log')
 
         # Axis labels
-        ax.set_xlabel('$V_g$ (V)', fontsize=14, fontweight='bold')
+        x_label = '$V_d$ (V)' if is_output_curve else '$V_g$ (V)'
+        ax.set_xlabel(x_label, fontsize=14, fontweight='bold')
         y_label = '$I_d$ (nA, log scale)' if args.semilogy else '$I_d$ (nA)'
         ax.set_ylabel(y_label, fontsize=14, fontweight='bold')
         ax.legend(loc='best', frameon=False)
@@ -679,10 +689,6 @@ def plot_aat_clean(measurements, electrode_type, device_id, output_dir, args, sw
         ax.yaxis.set_major_locator(MaxNLocator(nbins=args.n_major_ticks, prune=None))
         ax.xaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
         ax.yaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
-
-        # Scientific notation for y-axis (academic standard)
-        if not args.semilogy:  # Only for linear scale (log already has proper formatting)
-            ax.ticklabel_format(style='scientific', axis='y', scilimits=(0, 0))
 
         # Axis ranges
         if args.x_range is not None:
@@ -802,6 +808,10 @@ def plot_generic_merged(measurements, label, meas_type, device_id, output_dir, a
             'measurements': []
         }
 
+        # Detect sweep type for correct axis labeling
+        sweep_type_actual = measurements[0]['metadata'].get('sweep_type', 'Id-Vg')
+        is_output_curve = sweep_type_actual in ('Id-Vd', 'Ig-Vd')
+
         # Plot each sweep
         for idx, meas in enumerate(measurements):
             color = colors[idx % len(colors)]
@@ -812,6 +822,8 @@ def plot_generic_merged(measurements, label, meas_type, device_id, output_dir, a
             # Use custom legend label if provided, otherwise use default
             if args.legend_labels and idx < len(args.legend_labels):
                 label_text = args.legend_labels[idx]
+            elif is_output_curve:
+                label_text = f"Vg = {Vd:.1f} V"
             else:
                 label_text = f"Vd = {Vd:.1f} V"
 
@@ -842,7 +854,8 @@ def plot_generic_merged(measurements, label, meas_type, device_id, output_dir, a
             ax.set_yscale('log')
 
         # Axis labels
-        ax.set_xlabel('$V_g$ (V)', fontsize=14, fontweight='bold')
+        x_label = '$V_d$ (V)' if is_output_curve else '$V_g$ (V)'
+        ax.set_xlabel(x_label, fontsize=14, fontweight='bold')
         y_suffix = ', log scale' if args.semilogy else ''
         ax.set_ylabel(f'$I_d$ ({current_unit}{y_suffix})', fontsize=14, fontweight='bold')
         ax.legend(loc='best', frameon=False)
@@ -852,10 +865,6 @@ def plot_generic_merged(measurements, label, meas_type, device_id, output_dir, a
         ax.yaxis.set_major_locator(MaxNLocator(nbins=args.n_major_ticks, prune=None))
         ax.xaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
         ax.yaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
-
-        # Scientific notation for y-axis (academic standard)
-        if not args.semilogy:  # Only for linear scale (log already has proper formatting)
-            ax.ticklabel_format(style='scientific', axis='y', scilimits=(0, 0))
 
         # Axis ranges
         if args.x_range is not None:

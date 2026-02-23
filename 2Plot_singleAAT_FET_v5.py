@@ -31,7 +31,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator, MaxNLocator, ScalarFormatter
+from matplotlib.ticker import AutoMinorLocator, MaxNLocator
 from pathlib import Path
 from aat_data_loader_multisweep import AATDataLoader
 from filename_generator_robust import generate_filename_safe
@@ -373,6 +373,10 @@ def plot_single_file(measurements, filepath, device_id, output_dir, args):
             subtype = filepath.stem.split('[')[1].split(';')[0].strip() if '[' in filepath.stem else 'Unknown'
             meas_type = 'FET'  # Default
 
+        # Detect sweep type for correct axis labeling
+        sweep_type_actual = measurements[0]['metadata'].get('sweep_type', 'Id-Vg')
+        is_output_curve = sweep_type_actual in ('Id-Vd', 'Ig-Vd')
+
         # Plot each sweep
         for idx, meas in enumerate(measurements):
             color = colors[idx % len(colors)]
@@ -382,7 +386,7 @@ def plot_single_file(measurements, filepath, device_id, output_dir, args):
             Vg_fwd = meas['forward']['Vg']
             Id_fwd = meas['forward']['Id']
 
-            label = f"Vd = {Vd:.1f} V"
+            label = f"Vg = {Vd:.1f} V" if is_output_curve else f"Vd = {Vd:.1f} V"
             current_data = np.abs(Id_fwd) * 1e9 if args.semilogy else Id_fwd * 1e9
             ax.plot(Vg_fwd, current_data, '-', color=color, linewidth=2.5,
                    label=label, alpha=1.0, marker='o', markersize=3, markevery=5)
@@ -400,7 +404,8 @@ def plot_single_file(measurements, filepath, device_id, output_dir, args):
             ax.set_yscale('log')
 
         # Styling with subscripts
-        ax.set_xlabel('$V_g$ (V)', fontsize=14, fontweight='bold')
+        x_label = '$V_d$ (V)' if is_output_curve else '$V_g$ (V)'
+        ax.set_xlabel(x_label, fontsize=14, fontweight='bold')
         y_label = '$I_d$ (nA, log scale)' if args.semilogy else '$I_d$ (nA)'
         ax.set_ylabel(y_label, fontsize=14, fontweight='bold')
         ax.set_title(f'{subtype} - {filepath.stem}', fontsize=13, fontweight='bold', pad=15)
@@ -410,10 +415,6 @@ def plot_single_file(measurements, filepath, device_id, output_dir, args):
         ax.yaxis.set_major_locator(MaxNLocator(nbins=args.n_major_ticks, prune=None))
         ax.xaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
         ax.yaxis.set_minor_locator(AutoMinorLocator(args.n_minor_ticks))
-
-        # Scientific notation for y-axis (academic standard)
-        if not args.semilogy:  # Only for linear scale (log already has proper formatting)
-            ax.ticklabel_format(style='scientific', axis='y', scilimits=(0, 0))
 
         # Set axis ranges (if specified)
         if args.x_range is not None:
